@@ -16,14 +16,20 @@ jobs:
       - name: Download sources
         run: |
           mkdir -p src out
-          curl -fsSL --retry 3 -o src/easylist.txt https://easylist.to/easylist/easylist.txt
-          curl -fsSL --retry 3 -o src/easyprivacy.txt https://easylist.to/easylist/easyprivacy.txt
+          # основной источник + запасные зеркала
+          curl -fsSL --retry 3 -o src/easylist.txt https://easylist.to/easylist/easylist.txt \
+            || curl -fsSL --retry 3 -o src/easylist.txt https://easylist-downloads.adblockplus.org/easylist.txt \
+            || curl -fsSL --retry 3 -o src/easylist.txt https://raw.githubusercontent.com/easylist/easylist/gh-pages/easylist.txt
+          curl -fsSL --retry 3 -o src/easyprivacy.txt https://easylist.to/easylist/easyprivacy.txt \
+            || curl -fsSL --retry 3 -o src/easyprivacy.txt https://easylist-downloads.adblockplus.org/easyprivacy.txt \
+            || curl -fsSL --retry 3 -o src/easyprivacy.txt https://raw.githubusercontent.com/easylist/easylist/gh-pages/easyprivacy.txt
           curl -fsSL --retry 3 -o src/ubo-filters.txt https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt || true
           curl -fsSL --retry 3 -o src/ubo-quick.txt https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/quick-fixes.txt || true
+          curl -fsSL --retry 3 -o src/adguard-base.txt https://filters.adtidy.org/extension/ublock/filters/2.txt || true
       - name: Convert
         run: |
           python3 robot/convert_filters.py src/easylist.txt src/easyprivacy.txt --out out
-          python3 robot/youtube_params.py robot/params.json src/ubo-filters.txt src/ubo-quick.txt > out/params.json
+          python3 robot/youtube_params.py robot/params.json src/ubo-filters.txt src/ubo-quick.txt src/adguard-base.txt > out/params.json
       - name: Check
         run: python3 robot/check_lists.py out
       - name: Sign
@@ -35,7 +41,8 @@ jobs:
         run: |
           rm -rf filters && mkdir filters && cp out/*.json out/manifest.sig filters/
           git config user.name "aion-robot" && git config user.email "aion-robot@users.noreply.github.com"
+          # отметка о запуске: держит репозиторий «живым», чтобы GitHub не выключил робота через 60 дней
+          date -u +%Y-%m-%dT%H:%MZ > filters/last-run.txt
           git add filters
-          git diff --cached --quiet && echo "no changes" && exit 0
           git commit -qm "filters $(date -u +%Y-%m-%dT%H:%MZ)"
           git push -q

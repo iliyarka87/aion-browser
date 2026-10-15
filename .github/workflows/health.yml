@@ -1,0 +1,26 @@
+# Сторож робота: раз в день проверяет, что опубликованные фильтры свежие (не старше 2 суток) и подпись верна.
+# Если нет — запуск падает, и GitHub присылает письмо владельцу.
+name: health
+on:
+  schedule: [{ cron: "41 13 * * *" }]
+  workflow_dispatch: {}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check published filters
+        run: |
+          pip install --quiet cryptography
+          curl -fsSL -o manifest.json https://iliyarka87.github.io/aion-browser/filters/manifest.json
+          curl -fsSL -o manifest.sig https://iliyarka87.github.io/aion-browser/filters/manifest.sig
+          python3 - <<'PY'
+          import base64, json, datetime
+          from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+          pub = Ed25519PublicKey.from_public_bytes(base64.b64decode("6KjQAAudWPD1nu2PifVGWId0LOUipZZX1I6jRd4fKWQ="))
+          data = open("manifest.json", "rb").read()
+          pub.verify(base64.b64decode(open("manifest.sig").read()), data)
+          m = json.loads(data)
+          age = datetime.datetime.now(datetime.timezone.utc) - datetime.datetime.fromisoformat(m["created"].replace("Z", "+00:00"))
+          print("signature OK, age", age, "files", len(m["files"]))
+          assert age < datetime.timedelta(days=2), "фильтры не обновлялись больше 2 суток"
+          PY
