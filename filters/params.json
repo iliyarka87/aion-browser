@@ -4,6 +4,7 @@
   "adSlots",
   "playerAds",
   "adBreakHeartbeatParams",
+  "adSlotRenderer",
   "isAd"
  ],
  "hosts": [
