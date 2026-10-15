@@ -1,0 +1,41 @@
+# Робот AION: раз в 6 часов берёт свежие EasyList/EasyPrivacy и поля рекламы от сообщества uBlock Origin,
+# проверяет, подписывает (Ed25519) и кладёт в /filters на этом же сайте. Приложение забирает сам.
+# Сломалось что-то — публикация не происходит, у людей остаётся прошлое рабочее.
+name: filters
+on:
+  schedule: [{ cron: "23 */6 * * *" }]
+  workflow_dispatch: {}
+permissions:
+  contents: write
+concurrency: { group: filters, cancel-in-progress: false }
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download sources
+        run: |
+          mkdir -p src out
+          curl -fsSL --retry 3 -o src/easylist.txt https://easylist.to/easylist/easylist.txt
+          curl -fsSL --retry 3 -o src/easyprivacy.txt https://easylist.to/easylist/easyprivacy.txt
+          curl -fsSL --retry 3 -o src/ubo-filters.txt https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/filters.txt || true
+          curl -fsSL --retry 3 -o src/ubo-quick.txt https://raw.githubusercontent.com/uBlockOrigin/uAssets/master/filters/quick-fixes.txt || true
+      - name: Convert
+        run: |
+          python3 robot/convert_filters.py src/easylist.txt src/easyprivacy.txt --out out
+          python3 robot/youtube_params.py robot/params.json src/ubo-filters.txt src/ubo-quick.txt > out/params.json
+      - name: Check
+        run: python3 robot/check_lists.py out
+      - name: Sign
+        env: { LUMO_SIGNING_KEY: "${{ secrets.LUMO_SIGNING_KEY }}" }
+        run: |
+          pip install --quiet cryptography
+          python3 robot/make_manifest.py out
+      - name: Publish (only /filters)
+        run: |
+          rm -rf filters && mkdir filters && cp out/*.json out/manifest.sig filters/
+          git config user.name "aion-robot" && git config user.email "aion-robot@users.noreply.github.com"
+          git add filters
+          git diff --cached --quiet && echo "no changes" && exit 0
+          git commit -qm "filters $(date -u +%Y-%m-%dT%H:%MZ)"
+          git push -q
