@@ -1,0 +1,17 @@
+{
+ "lists": [
+  {
+   "file": "network-1.json",
+   "rules": 113192
+  },
+  {
+   "file": "cosmetic-1.json",
+   "rules": 9542
+  }
+ ],
+ "sources": [
+  "src/easylist.txt",
+  "src/easyprivacy.txt"
+ ],
+ "license": "derived from EasyList/EasyPrivacy, CC BY-SA 3.0, The EasyList authors (https://easylist.to/)"
+}
