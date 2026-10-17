@@ -9,6 +9,9 @@ base = json.load(open(sys.argv[1]))
 keys = list(dict.fromkeys(base["videoAdKeys"]))
 ADLIKE = re.compile(r"^(ad[A-Z][A-Za-z]*|[a-z]+Ads?|[a-z]+Ad[A-Z][A-Za-z]*|adPlacements|adSlots|playerAds)$")
 SAFE_EXCLUDE = {"loadAds", "canAds", "hasAds"}        # не трогать флаги, которые могут ломать плеер
+# 17.10.2026: только эти три поля. «Пульс» рекламной паузы (adBreakHeartbeatParams), isAd, adSlotRenderer
+# вырезать нельзя: когда сайт вшивает рекламу в поток, плеер без них стоит на 0:00 (поймано на айфоне).
+ALLOWED = {"adPlacements", "adSlots", "playerAds"}
 found = set()
 for path in sys.argv[2:]:
     try:
@@ -23,7 +26,7 @@ for path in sys.argv[2:]:
             continue
         for path_ in m.group(1).split():
             name = path_.split(".")[-1].replace("[]", "").replace("[-]", "").strip("'\"")
-            if ADLIKE.match(name) and name not in SAFE_EXCLUDE and len(name) <= 40:
+            if name in ALLOWED and ADLIKE.match(name) and name not in SAFE_EXCLUDE:
                 found.add(name)
 for k in sorted(found):
     if k not in keys:
