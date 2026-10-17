@@ -2,10 +2,7 @@
  "videoAdKeys": [
   "adPlacements",
   "adSlots",
-  "playerAds",
-  "adBreakHeartbeatParams",
-  "adSlotRenderer",
-  "isAd"
+  "playerAds"
  ],
  "hosts": [
   "youtube.com",
