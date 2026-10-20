@@ -2,11 +2,11 @@
  "lists": [
   {
    "file": "network-1.json",
-   "rules": 114836
+   "rules": 114929
   },
   {
    "file": "cosmetic-1.json",
-   "rules": 9558
+   "rules": 9559
   }
  ],
  "sources": [
